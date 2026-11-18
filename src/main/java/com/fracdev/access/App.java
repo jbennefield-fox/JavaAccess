@@ -3,6 +3,7 @@ package com.fracdev.access;
 import io.github.spannm.jackcess.Database;
 import io.github.spannm.jackcess.Table;
 import io.github.spannm.jackcess.TableMetaData;
+import io.github.spannm.jackcess.encrypt.InvalidCredentialsException;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.file.NoSuchFileException;
@@ -105,6 +106,9 @@ public final class App {
       };
     } catch (NoSuchFileException e) {
       err.println("error: no such file: " + e.getMessage());
+      return 1;
+    } catch (InvalidCredentialsException e) {
+      err.println("error: wrong or missing password (--password or ACCESS_PASSWORD)");
       return 1;
     } catch (IOException | SQLException e) {
       err.println("error: " + e.getMessage());
