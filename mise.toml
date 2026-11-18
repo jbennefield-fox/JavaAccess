@@ -9,12 +9,12 @@ description = "Run the JUnit tests in the build stage, uncached"
 run = "docker build --target build --no-cache-filter build --progress=plain ."
 
 [tasks.load]
-description = "Copy the *.accdb / *.accde / *.mdb files in this directory into the data volume"
+description = "Copy the *.accdb / *.accde / *.mdb files in access-dbs/ into the data volume"
 run = '''
 set -e
 docker compose create access >/dev/null
 cid=$(docker compose ps -aq access)
-for f in *.accdb *.accde *.mdb; do
+for f in access-dbs/*.accdb access-dbs/*.accde access-dbs/*.mdb; do
   [ -e "$f" ] || continue
   echo "copying $f"
   docker cp "$f" "$cid:/data/"
@@ -32,18 +32,19 @@ docker compose run --rm access relink Fleet.accde RMData.accdb /data/RMData.accd
 '''
 
 [tasks.sqlite]
-description = "Convert Fleet.accde and RMData.accdb to SQLite and copy the .sqlite files here"
+description = "Convert Fleet.accde and RMData.accdb to SQLite and copy them to ./out/"
 run = '''
 set -e
 docker compose run --rm access --force to-sqlite RMData.accdb RMData.sqlite
 docker compose run --rm access --force to-sqlite Fleet.accde Fleet.sqlite
 docker compose create access >/dev/null
 cid=$(docker compose ps -aq access)
+mkdir -p out
 for f in RMData.sqlite Fleet.sqlite; do
-  docker cp "$cid:/data/$f" "./$f"
+  docker cp "$cid:/data/$f" "out/$f"
 done
 docker compose rm -f access >/dev/null
-ls -la *.sqlite
+ls -la out/*.sqlite
 '''
 
 [tasks.ls]
