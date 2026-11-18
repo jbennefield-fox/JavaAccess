@@ -113,6 +113,58 @@ class AppTest {
     assertTrue(rw.contains(";memory=false"), rw);
   }
 
+  /** Front-end with Windows-path links, like Fleet.accde: Cars -> fixture.accdb, Other -> elsewhere. */
+  private Path createFrontEnd() throws Exception {
+    Path front = tmp.resolve("front.accdb");
+    try (Database d = DatabaseBuilder.newDatabase(front).withFileFormat(FileFormat.V2010).create()) {
+      d.createLinkedTable("Cars", "C:\\Remarketing\\RMDATA\\FIXTURE.accdb", "Cars");
+      d.createLinkedTable("Other", "C:\\Remarketing\\RMDATA\\other.accdb", "Other");
+    }
+    return front;
+  }
+
+  @Test
+  void relinkRepointsMatchingLinksOnly() throws Exception {
+    Path front = createFrontEnd();
+    Result r = run("relink", front.toString(), "fixture.accdb", "fixture.accdb");
+    assertEquals(0, r.code, r.err);
+    assertTrue(r.err.contains("relinked 1 table(s)"), r.err);
+
+    Result t = run("tables", front.toString());
+    assertTrue(t.out.contains("LINK\tCars\tfixture.accdb [Cars]\n"), t.out);
+    assertTrue(t.out.contains("LINK\tOther\tC:\\Remarketing\\RMDATA\\other.accdb [Other]\n"), t.out);
+
+    // Second run is a no-op.
+    assertTrue(run("relink", front.toString(), "fixture.accdb", "fixture.accdb").err.contains("relinked 0"));
+  }
+
+  @Test
+  void relinkedTableIsQueryableThroughUcanaccess() throws Exception {
+    Path front = createFrontEnd();
+    run("relink", front.toString(), "fixture.accdb", db.toAbsolutePath().toString());
+    Result r = run("query", front.toString(), "SELECT COUNT(*) AS N FROM Cars");
+    assertEquals(0, r.code, r.err);
+    assertEquals("N\n2\n", r.out);
+  }
+
+  @Test
+  void relinkDryRunDoesNotWrite() throws Exception {
+    Path front = createFrontEnd();
+    byte[] before = Files.readAllBytes(front);
+    Result r = run("--dry-run", "relink", front.toString(), "fixture.accdb", "fixture.accdb");
+    assertEquals(0, r.code, r.err);
+    assertTrue(r.err.contains("would relink 1 table(s)"), r.err);
+    assertTrue(r.out.startsWith("Cars\tC:\\Remarketing\\RMDATA\\FIXTURE.accdb\t->\tfixture.accdb"), r.out);
+    assertArrayEquals(before, Files.readAllBytes(front));
+  }
+
+  @Test
+  void baseNameHandlesWindowsAndPosixPaths() {
+    assertEquals("RMData.accdb", Relink.baseName("C:\\Remarketing\\RMDATA\\RMData.accdb"));
+    assertEquals("RMData.accdb", Relink.baseName("/data/RMData.accdb"));
+    assertEquals("RMData.accdb", Relink.baseName("RMData.accdb"));
+  }
+
   @Test
   void csvEscape() {
     assertEquals("a", Csv.escape("a"));

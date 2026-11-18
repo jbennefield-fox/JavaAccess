@@ -25,8 +25,13 @@ public final class App {
       commands:
         tables <db>          list tables: kind, name, rows (local) or link target (linked)
         query  <db> <sql>    run Access SQL through UCanAccess, print CSV to stdout
+        relink <db> <file> <new-path>
+                             repoint linked tables whose backend file name is <file> to
+                             <new-path> (writes <db>). Use an absolute path: UCanAccess
+                             resolves relative links against the working directory.
 
       options:
+        --dry-run            relink: list changes, don't write
         --password <pw>      database password (default: $ACCESS_PASSWORD)
         --write              open the file writable (default: read-only)
         --disk               keep UCanAccess's HSQLDB mirror on disk, not the heap (query only)
@@ -56,6 +61,7 @@ public final class App {
     boolean write = false;
     boolean disk = false;
     boolean verbose = false;
+    boolean dryRun = false;
     for (int i = 0; i < args.length; i++) {
       switch (args[i]) {
         case "--password" -> {
@@ -67,6 +73,7 @@ public final class App {
         case "--write" -> write = true;
         case "--disk" -> disk = true;
         case "--verbose" -> verbose = true;
+        case "--dry-run" -> dryRun = true;
         case "-h", "--help" -> {
           out.print(USAGE);
           return 0;
@@ -91,6 +98,9 @@ public final class App {
         case "query" -> pos.size() == 3
             ? query(Path.of(pos.get(1)), pos.get(2), password, new Databases.Options(!write, disk))
             : usage(cmd + " takes <db> <sql>");
+        case "relink" -> pos.size() == 4
+            ? relink(Path.of(pos.get(1)), pos.get(2), pos.get(3), password, dryRun)
+            : usage(cmd + " takes <db> <file> <new-path>");
         default -> usage("unknown command " + cmd);
       };
     } catch (NoSuchFileException e) {
@@ -128,6 +138,18 @@ public final class App {
       } else {
         err.println(st.getUpdateCount() + " row(s) affected");
       }
+    }
+    return 0;
+  }
+
+  private int relink(Path file, String fileName, String newPath, String password, boolean dryRun)
+      throws IOException {
+    try (Database db = Databases.open(file, password, dryRun)) {
+      List<Relink.Change> changes = Relink.relink(db, fileName, newPath, dryRun);
+      for (Relink.Change c : changes) {
+        out.println(c.table() + "\t" + c.from() + "\t->\t" + c.to());
+      }
+      err.println((dryRun ? "would relink " : "relinked ") + changes.size() + " table(s)");
     }
     return 0;
   }
