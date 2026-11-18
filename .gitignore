@@ -8,3 +8,6 @@ mise.local.toml
 *.mde
 *.laccdb
 *.ldb
+
+# Secrets (ACCESS_PASSWORD)
+.env

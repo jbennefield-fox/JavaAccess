@@ -6,6 +6,7 @@ services:
     build: .
     image: fracdev/access:latest
     environment:
+      # From .env (gitignored). Single-quote the value there if it contains `$`.
       ACCESS_PASSWORD: ${ACCESS_PASSWORD:-}
     volumes:
       # Access files are loaded with `mise run load` (docker cp), never bind-mounted.
