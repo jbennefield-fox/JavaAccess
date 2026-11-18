@@ -159,6 +159,33 @@ class AppTest {
   }
 
   @Test
+  void openerRemembersLinkPasswordsFromConnectStrings() throws Exception {
+    Path front = createFrontEnd();
+    try (Database d = DatabaseBuilder.open(front)) {
+      Table sys = d.getSystemTable("MSysObjects");
+      for (io.github.spannm.jackcess.Row row : sys) {
+        if ("Cars".equals(row.get("Name"))) {
+          row.put("Connect", "MS Access;PWD=s3cret;");
+          sys.updateRow(row);
+        }
+      }
+    }
+    try (Database d = new CryptOpener.ReadOnly().open(front.toFile(), null)) {
+      assertEquals("s3cret", CryptOpener.linkPassword("C:\\Remarketing\\RMDATA\\FIXTURE.accdb"));
+      assertEquals(null, CryptOpener.linkPassword("C:\\Remarketing\\RMDATA\\other.accdb"));
+    }
+  }
+
+  @Test
+  void connectPasswordParsing() {
+    assertEquals("Fox$x", CryptOpener.connectPassword("MS Access;PWD=Fox$x;"));
+    assertEquals("a", CryptOpener.connectPassword(";pwd=a"));
+    assertEquals(null, CryptOpener.connectPassword("MS Access;"));
+    assertEquals(null, CryptOpener.connectPassword("MS Access;PWD=;"));
+    assertEquals(null, CryptOpener.connectPassword(null));
+  }
+
+  @Test
   void baseNameHandlesWindowsAndPosixPaths() {
     assertEquals("RMData.accdb", Relink.baseName("C:\\Remarketing\\RMDATA\\RMData.accdb"));
     assertEquals("RMData.accdb", Relink.baseName("/data/RMData.accdb"));
