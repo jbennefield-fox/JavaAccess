@@ -1,0 +1,15 @@
+name: access
+
+# CLI tool, not a server: no ports, no Traefik. Run with `docker compose run --rm access ...`.
+services:
+  access:
+    build: .
+    image: fracdev/access:latest
+    environment:
+      ACCESS_PASSWORD: ${ACCESS_PASSWORD:-}
+    volumes:
+      # Access files are loaded with `mise run load` (docker cp), never bind-mounted.
+      - access-data:/data
+
+volumes:
+  access-data:

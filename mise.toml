@@ -1,0 +1,49 @@
+# Everything runs in Docker; no local toolchain needed.
+
+[tasks.build]
+description = "Build the image (compiles and runs the JUnit tests)"
+run = "docker compose build"
+
+[tasks.test]
+description = "Run the JUnit tests in the build stage, uncached"
+run = "docker build --target build --no-cache-filter build --progress=plain ."
+
+[tasks.load]
+description = "Copy the *.accdb / *.accde / *.mdb files in this directory into the data volume"
+run = '''
+set -e
+docker compose create access >/dev/null
+cid=$(docker compose ps -aq access)
+for f in *.accdb *.accde *.mdb; do
+  [ -e "$f" ] || continue
+  echo "copying $f"
+  docker cp "$f" "$cid:/data/"
+done
+docker compose rm -f access >/dev/null
+docker compose run --rm --user root --entrypoint chown access -R ubuntu:ubuntu /data
+docker compose run --rm --entrypoint ls access -la /data
+'''
+
+[tasks.ls]
+description = "List files in the data volume"
+run = "docker compose run --rm --entrypoint ls access -la /data"
+
+[tasks.tables]
+description = "List tables: mise run tables <db>"
+run = "docker compose run --rm access tables"
+
+[tasks.query]
+description = "Run SQL, CSV out: mise run query <db> '<sql>'"
+run = "docker compose run --rm access query"
+
+[tasks.access]
+description = "Run the CLI with arbitrary args: mise run access -- --help"
+run = "docker compose run --rm access"
+
+[tasks.down]
+description = "Remove containers (keeps the data volume)"
+run = "docker compose down --remove-orphans"
+
+[tasks.clean]
+description = "Remove containers, image and the data volume"
+run = "docker compose down --remove-orphans --volumes --rmi local"

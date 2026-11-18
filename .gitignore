@@ -1,0 +1,10 @@
+target/
+mise.local.toml
+
+# Access databases (company data) and their lock files
+*.accdb
+*.accde
+*.mdb
+*.mde
+*.laccdb
+*.ldb

@@ -1,0 +1,4 @@
+# Allow-list: the Access files here are >1 GB and must never enter the build context.
+*
+!pom.xml
+!src
