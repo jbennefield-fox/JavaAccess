@@ -6,6 +6,7 @@ import io.github.spannm.jackcess.TableMetaData;
 import io.github.spannm.jackcess.encrypt.InvalidCredentialsException;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.sql.Connection;
@@ -30,9 +31,13 @@ public final class App {
                              repoint linked tables whose backend file name is <file> to
                              <new-path> (writes <db>). Use an absolute path: UCanAccess
                              resolves relative links against the working directory.
+        to-sqlite <db> <out.sqlite>
+                             copy every local table (data, primary keys, indexes) into
+                             a new SQLite file. Linked tables and queries are skipped.
 
       options:
         --dry-run            relink: list changes, don't write
+        --force              to-sqlite: replace an existing output file
         --password <pw>      database password (default: $ACCESS_PASSWORD)
         --write              open the file writable (default: read-only)
         --disk               keep UCanAccess's HSQLDB mirror on disk, not the heap (query only)
@@ -63,6 +68,7 @@ public final class App {
     boolean disk = false;
     boolean verbose = false;
     boolean dryRun = false;
+    boolean force = false;
     for (int i = 0; i < args.length; i++) {
       switch (args[i]) {
         case "--password" -> {
@@ -75,6 +81,7 @@ public final class App {
         case "--disk" -> disk = true;
         case "--verbose" -> verbose = true;
         case "--dry-run" -> dryRun = true;
+        case "--force" -> force = true;
         case "-h", "--help" -> {
           out.print(USAGE);
           return 0;
@@ -102,6 +109,9 @@ public final class App {
         case "relink" -> pos.size() == 4
             ? relink(Path.of(pos.get(1)), pos.get(2), pos.get(3), password, dryRun)
             : usage(cmd + " takes <db> <file> <new-path>");
+        case "to-sqlite" -> pos.size() == 3
+            ? toSqlite(Path.of(pos.get(1)), Path.of(pos.get(2)), password, force)
+            : usage(cmd + " takes <db> <out.sqlite>");
         default -> usage("unknown command " + cmd);
       };
     } catch (NoSuchFileException e) {
@@ -154,6 +164,31 @@ public final class App {
         out.println(c.table() + "\t" + c.from() + "\t->\t" + c.to());
       }
       err.println((dryRun ? "would relink " : "relinked ") + changes.size() + " table(s)");
+    }
+    return 0;
+  }
+
+  private int toSqlite(Path file, Path out, String password, boolean force)
+      throws IOException, SQLException {
+    if (Files.exists(out)) {
+      if (!force) {
+        err.println("error: " + out + " exists (use --force to replace it)");
+        return 1;
+      }
+      Files.delete(out);
+    }
+    long t0 = System.nanoTime();
+    SqliteExport.Summary s;
+    try (Database db = Databases.open(file, password, true)) {
+      s = SqliteExport.export(db, out, err);
+    }
+    err.printf(
+        "%nwrote %s: %d tables, %,d rows in %.1fs; skipped %d linked table(s)%n",
+        out, s.tables(), s.rows(), (System.nanoTime() - t0) / 1e9, s.skippedLinks().size());
+    if (!s.failures().isEmpty()) {
+      err.println(s.failures().size() + " table(s) failed:");
+      s.failures().forEach(f -> err.println("  " + f));
+      return 1;
     }
     return 0;
   }

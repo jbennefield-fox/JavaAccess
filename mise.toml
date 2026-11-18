@@ -31,6 +31,21 @@ run = '''
 docker compose run --rm access relink Fleet.accde RMData.accdb /data/RMData.accdb > /dev/null
 '''
 
+[tasks.sqlite]
+description = "Convert Fleet.accde and RMData.accdb to SQLite and copy the .sqlite files here"
+run = '''
+set -e
+docker compose run --rm access --force to-sqlite RMData.accdb RMData.sqlite
+docker compose run --rm access --force to-sqlite Fleet.accde Fleet.sqlite
+docker compose create access >/dev/null
+cid=$(docker compose ps -aq access)
+for f in RMData.sqlite Fleet.sqlite; do
+  docker cp "$cid:/data/$f" "./$f"
+done
+docker compose rm -f access >/dev/null
+ls -la *.sqlite
+'''
+
 [tasks.ls]
 description = "List files in the data volume"
 run = "docker compose run --rm --entrypoint ls access -la /data"

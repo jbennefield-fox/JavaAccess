@@ -11,3 +11,6 @@ mise.local.toml
 
 # Secrets (ACCESS_PASSWORD)
 .env
+
+# SQLite exports (company data)
+*.sqlite
