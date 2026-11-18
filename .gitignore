@@ -14,3 +14,6 @@ mise.local.toml
 
 # SQLite exports (company data)
 *.sqlite
+
+# Source Access databases
+access-dbs/
