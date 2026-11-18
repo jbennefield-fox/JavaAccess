@@ -81,8 +81,8 @@ class AppTest {
   }
 
   @Test
-  void diskModeQueriesToo() {
-    Result r = run("--disk", "query", db.toString(), "SELECT COUNT(*) AS N FROM Cars");
+  void memoryModeQueriesToo() {
+    Result r = run("--memory", "query", db.toString(), "SELECT COUNT(*) AS N FROM Cars");
     assertEquals(0, r.code, r.err);
     assertEquals("N\n2\n", r.out);
   }

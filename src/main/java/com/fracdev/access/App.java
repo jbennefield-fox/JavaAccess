@@ -40,7 +40,8 @@ public final class App {
         --force              to-sqlite: replace an existing output file
         --password <pw>      database password (default: $ACCESS_PASSWORD)
         --write              open the file writable (default: read-only)
-        --disk               keep UCanAccess's HSQLDB mirror on disk, not the heap (query only)
+        --memory             query: keep UCanAccess's HSQLDB mirror in the heap instead of on
+                             disk. Faster for small files; runs out of memory on large ones
         --verbose            show UCanAccess warnings (missing linked files, unparsable queries)
       """;
 
@@ -65,7 +66,7 @@ public final class App {
     List<String> pos = new ArrayList<>();
     String password = envPassword;
     boolean write = false;
-    boolean disk = false;
+    boolean disk = true;
     boolean verbose = false;
     boolean dryRun = false;
     boolean force = false;
@@ -78,7 +79,7 @@ public final class App {
           password = args[i];
         }
         case "--write" -> write = true;
-        case "--disk" -> disk = true;
+        case "--memory" -> disk = false;
         case "--verbose" -> verbose = true;
         case "--dry-run" -> dryRun = true;
         case "--force" -> force = true;

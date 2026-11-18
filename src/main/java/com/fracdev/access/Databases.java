@@ -40,7 +40,8 @@ final class Databases {
         // Indexes only matter for enforcing constraints on writes; skipping them loads faster.
         + ";skipIndexes=" + opts.readOnly()
         + ";ignoreCase=true"
-        // memory=false keeps the HSQLDB mirror on disk instead of the heap (large files).
+        // memory=false keeps the HSQLDB mirror on disk instead of the heap. The CLI defaults to
+        // disk: RMData (1.1 GB) gets the JVM killed for running out of memory otherwise.
         + ";memory=" + !opts.disk();
   }
 

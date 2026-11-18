@@ -67,7 +67,7 @@ mise run access -- --help                                    # anything else
 |---|---|
 | `--password <pw>` | Database password. Defaults to `$ACCESS_PASSWORD`. |
 | `--write` | Open the file writable. **Default is read-only**, at the file level, not just SQL. |
-| `--disk` | Keep UCanAccess's HSQLDB mirror on disk instead of the heap. **Required for RMData.** |
+| `--memory` | `query`: keep UCanAccess's HSQLDB mirror in the heap instead of on disk (the default). Faster for small files, but RMData runs out of memory. |
 | `--dry-run` | `relink`: show what would change without writing. |
 | `--force` | `to-sqlite`: replace an existing output file. |
 | `--verbose` | Show UCanAccess warnings (missing linked files, Access queries it can't convert). |
@@ -106,11 +106,11 @@ UCanAccess copies **every reachable table** into HSQLDB before it runs any SQL, 
 | | Load time |
 |---|---|
 | Fleet.accde, local tables only | ~12 s |
-| RMData.accdb with `--disk` | ~24 s |
-| RMData.accdb in memory (default) | **killed for running out of memory** (exit 137) in a 7.7 GB Docker VM |
+| RMData.accdb (on-disk mirror, the default) | ~24 s |
+| RMData.accdb with `--memory` | **killed for running out of memory** (exit 137) in a 7.7 GB Docker VM |
 | Fleet.accde with RMData links resolved | > 10 min, didn't finish |
 
-For bulk reads, prefer `tables` / `to-sqlite` (Jackcess streams rows and loads nothing up front), or query the SQLite exports. Use `query` against RMData directly, with `--disk`, rather than going through Fleet.
+For bulk reads, prefer `tables` / `to-sqlite` (Jackcess streams rows and loads nothing up front), or query the SQLite exports. Use `query` against RMData directly rather than going through Fleet.
 
 ## Forms, reports and VBA
 
